@@ -1,3 +1,11 @@
+terraform {
+  required_version = ">= 0.13.7"
+
+  required_providers {
+    aws = ">= 4.44.0"
+  }
+}
+
 provider "aws" {
   region = "eu-west-1"
 }
@@ -33,7 +41,7 @@ module "alb" {
 #####
 
 resource "aws_s3_bucket" "bucket" {
-  bucket = "firehose-stream-test-bucket"
+  bucket = "aws-waf-firehose-stream-test-bucket"
   acl    = "private"
 }
 
@@ -177,11 +185,6 @@ module "wafv2" {
       managed_rule_group_statement = {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
-        excluded_rule = [
-          "SizeRestrictions_QUERYSTRING",
-          "SizeRestrictions_BODY",
-          "GenericRFI_QUERYARGUMENTS"
-        ]
       }
     },
     {

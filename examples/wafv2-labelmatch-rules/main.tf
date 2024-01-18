@@ -32,35 +32,50 @@ module "waf" {
 
   rules = [
     {
-      name     = "AWSManagedRulesCommonRuleSet-rule-1"
+      name     = "AWSManagedRulesBotControlRuleSet-rule-1"
       priority = "1"
 
       override_action = "none"
 
       visibility_config = {
         cloudwatch_metrics_enabled = false
-        metric_name                = "AWSManagedRulesCommonRuleSet-metric"
+        metric_name                = "AWSManagedRulesBotControlRuleSet-metric"
         sampled_requests_enabled   = false
       }
 
       managed_rule_group_statement = {
-        name        = "AWSManagedRulesCommonRuleSet"
+        name        = "AWSManagedRulesBotControlRuleSet"
         vendor_name = "AWS"
       }
     },
     {
-      name     = "allow-nl-gb-us-traffic-only"
+      name     = "block-specific-agent"
       priority = "2"
-      action   = "allow"
+      action   = "block"
 
-      geo_match_statement = {
-        country_codes = ["NL", "GB", "US"],
-        forwarded_ip_config = {
-          header_name       = "X-Forwarded-For"
-          fallback_behavior = "NO_MATCH"
-        }
+      and_statement = {
+        statements = [
+          {
+            label_match_statement = {
+              key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+              scope = "LABEL"
+            }
+          },
+          {
+            byte_match_statement = {
+              field_to_match = {
+                single_header = {
+                  name = "user-agent"
+                }
+              }
+              positional_constraint = "CONTAINS"
+              search_string         = "BadBot"
+              priority              = 0
+              type                  = "NONE"
+            }
+          }
+        ]
       }
-
       visibility_config = {
         cloudwatch_metrics_enabled = false
         sampled_requests_enabled   = false

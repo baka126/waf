@@ -1,3 +1,11 @@
+terraform {
+  required_version = ">= 0.13.7"
+
+  required_providers {
+    aws = ">= 4.44.0"
+  }
+}
+
 provider "aws" {
   region = "eu-west-1"
 }
@@ -9,8 +17,11 @@ data "aws_vpc" "default" {
   default = true
 }
 
-data "aws_subnet_ids" "all" {
-  vpc_id = data.aws_vpc.default.id
+data "aws_subnets" "all" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
 }
 
 #####
@@ -24,7 +35,7 @@ module "alb" {
   load_balancer_type = "application"
   internal           = false
   vpc_id             = data.aws_vpc.default.id
-  subnets            = data.aws_subnet_ids.all.ids
+  subnets            = data.aws_subnets.all.ids
 }
 
 #####
@@ -62,11 +73,6 @@ module "waf" {
       managed_rule_group_statement = {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
-        excluded_rule = [
-          "SizeRestrictions_QUERYSTRING",
-          "SizeRestrictions_BODY",
-          "GenericRFI_QUERYARGUMENTS"
-        ]
       }
     },
     {
@@ -87,6 +93,7 @@ module "waf" {
       }
     },
     {
+      # Uses an optional scope down statement to further refine what the rule is being applied to
       name     = "AWSManagedRulesPHPRuleSet-rule-3"
       priority = "3"
 
@@ -101,6 +108,13 @@ module "waf" {
       managed_rule_group_statement = {
         name        = "AWSManagedRulesPHPRuleSet"
         vendor_name = "AWS"
+
+        # Optional scope_down_statement
+        scope_down_statement = {
+          geo_match_statement = {
+            country_codes = ["NL", "GB", "US"]
+          }
+        }
       }
     },
     {

@@ -46,6 +46,7 @@ module "waf" {
       managed_rule_group_statement = {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
+        version     = "Version_2.0"
       }
     },
     {
@@ -132,30 +133,27 @@ module "waf" {
       }
     },
     {
-      # Blocks a single user by checking the username header
-      name     = "block-cookie"
-      priority = "6"
-      action   = "block"
-
-      byte_match_statement = {
+      name     = "BodySizeConstraint"
+      priority = 0
+      size_constraint_statement = {
         field_to_match = {
-          cookies = {
-            match_pattern = {
-              "all" = {}
-            }
-          }
+          body = "{}"
         }
-        positional_constraint = "CONTAINS"
-        search_string         = "cookie"
-        priority              = 0
-        type                  = "NONE" # The text transformation type
+        comparison_operator = "GT"
+        size                = 8192
+        priority            = 0
+        type                = "NONE"
+
       }
+
+      action = "block"
 
       visibility_config = {
-        cloudwatch_metrics_enabled = false
-        sampled_requests_enabled   = false
+        cloudwatch_metrics_enabled = true
+        metric_name                = "BodySizeConstraint"
+        sampled_requests_enabled   = true
       }
-    }
+    },
   ]
 
   tags = {

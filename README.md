@@ -1,4 +1,4 @@
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/umotif-public/terraform-aws-waf-webaclv2?style=social)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/umotif-public/terraform-aws-waf-webaclv2)](https://github.com/umotif-public/terraform-aws-waf-webaclv2/releases/latest)
 
 # terraform-aws-waf-webaclv2
 
@@ -13,22 +13,27 @@ Supported WAF v2 components:
 - Byte Match statements
 - Geo set statements
 - Logical Statements (AND, OR, NOT)
+- Size constraint statements
+- Label Match statements
+- Regex Match statements
+- Regex Pattern Match statements
+- Custom responses
+- Attach Custom Rule Groups
 
 ## Terraform versions
 
-Terraform 0.13+ Pin module version to `~> v3.0`. Submit pull-requests to `main` branch.
-Terraform 0.12 < 0.13. Pin module version to `~> v1.0`.
+Terraform 0.13+ Pin module version to `~> 4.0`. Submit pull-requests to `main` branch.
 
 ## Usage
 
 Please pin down version of this module to exact version
 
-If referring directly to the code instead of a pinned version, take note that from release 3.0.0 all future changes will only be made to the `main` branch.
+If referring directly to the code instead of a pinned version, take note that from release 4.0.0 all future changes will only be made to the `main` branch.
 
 ```hcl
 module "waf" {
   source = "umotif-public/waf-webaclv2/aws"
-  version = "~> 3.0.0"
+  version = "~> 4.0.0"
 
   name_prefix = "test-waf-setup"
   alb_arn     = module.alb.arn
@@ -57,10 +62,28 @@ module "waf" {
       managed_rule_group_statement = {
         name        = "AWSManagedRulesCommonRuleSet"
         vendor_name = "AWS"
-        excluded_rule = [
-          "SizeRestrictions_QUERYSTRING",
-          "SizeRestrictions_BODY",
-          "GenericRFI_QUERYARGUMENTS"
+        rule_action_overrides = [
+          {
+            action_to_use = {
+              count = {}
+            }
+
+            name = "SizeRestrictions_QUERYSTRING"
+          },
+          {
+            action_to_use = {
+              count = {}
+            }
+
+            name = "SizeRestrictions_BODY"
+          },
+          {
+            action_to_use = {
+              count = {}
+            }
+
+            name = "GenericRFI_QUERYARGUMENTS"
+          }
         ]
       }
     },
@@ -201,7 +224,7 @@ module "waf" {
         sampled_requests_enabled   = false
       }
 
-      not_statement {
+      not_statement = {
         byte_match_statement = {
           field_to_match = {
             uri_path = "{}"
@@ -211,6 +234,136 @@ module "waf" {
           priority              = 0
           type                  = "NONE"
         }
+      }
+    },
+    ### Regex Match Rule example
+    {
+      name     = "RegexMatchRule-9"
+      priority = "9"
+
+      action = "allow"
+
+      visibility_config = {
+        cloudwatch_metrics_enabled = false
+        metric_name                = "RegexMatchRule-metric"
+        sampled_requests_enabled   = false
+      }
+
+      byte_match_statement = {
+          field_to_match = {
+            uri_path = "{}"
+          }
+          regex_string         = "/foo/"
+          priority              = 0
+          type                  = "NONE"
+        }
+    ### Attach Custom Rule Group example
+    {
+      name     = "CustomRuleGroup-1"
+      priority = "9"
+
+      override_action = "none"
+
+      visibility_config = {
+        cloudwatch_metrics_enabled = false
+        metric_name                = "CustomRuleGroup-metric"
+        sampled_requests_enabled   = false
+      }
+
+      rule_group_reference_statement = {
+        arn = "arn:aws:wafv2:eu-west-1:111122223333:regional/rulegroup/rulegroup-test/a1bcdef2-1234-123a-abc0-1234a5bc67d8"
+      }
+    ### Regex Match Rule example
+    {
+      name     = "RegexMatchRule-9"
+      priority = "9"
+
+      action = "allow"
+
+      visibility_config = {
+        cloudwatch_metrics_enabled = false
+        metric_name                = "RegexMatchRule-metric"
+        sampled_requests_enabled   = false
+      }
+
+      byte_match_statement = {
+          field_to_match = {
+            uri_path = "{}"
+          }
+          regex_string         = "/foo/"
+          priority              = 0
+          type                  = "NONE"
+        }
+    ### Attach Custom Rule Group example
+    {
+      name     = "CustomRuleGroup-1"
+      priority = "9"
+
+      override_action = "none"
+
+      visibility_config = {
+        cloudwatch_metrics_enabled = false
+        metric_name                = "CustomRuleGroup-metric"
+        sampled_requests_enabled   = false
+      }
+
+      rule_group_reference_statement = {
+        arn = "arn:aws:wafv2:eu-west-1:111122223333:regional/rulegroup/rulegroup-test/a1bcdef2-1234-123a-abc0-1234a5bc67d8"
+      }
+    },
+    ### Size constraint Rule example
+    # Refer to https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl#size-constraint-statement
+    # for all of the options available.
+    # Additional examples available in the examples directory
+    {
+      name     = "BodySizeConstraint"
+      priority = 0
+      size_constraint_statement = {
+        field_to_match = {
+          body = "{}"
+        }
+        comparison_operator = "GT"
+        size                = 8192
+        priority            = 0
+        type                = "NONE"
+      }
+
+      action = "count"
+
+      visibility_config = {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "BodySizeConstraint"
+        sampled_requests_enabled   = true
+      }
+    },
+    ### Regex Pattern Set Reference Rule example
+    # Refer to https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl#regex-pattern-set-reference-statement
+    # for all of the options available.
+    # Additional examples available in the examples directory
+    {
+      name = "MatchRegexRule-1"
+      priority = "1"
+
+      action = "none"
+
+      visibility_config = {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "RegexBadBotsUserAgent-metric"
+        sampled_requests_enabled   = false
+      }
+
+      # You need to previously create you regex pattern
+      # Refer to https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_regex_pattern_set
+      # for all of the options available.
+      regex_pattern_set_reference_statement = {
+        arn       = aws_wafv2_regex_pattern_set.example.arn
+        field_to_match = {
+          single_header = {
+            name = "user-agent"
+          }
+        }
+        priority  = 0
+        type      = "LOWERCASE" # The text transformation type
       }
     }
   ]
@@ -228,7 +381,7 @@ module "waf" {
 provider "aws" {
   alias = "us-east"
 
-  version = ">= 3.38"
+  version = ">= 4.44.0"
   region  = "us-east-1"
 }
 
@@ -238,7 +391,7 @@ module "waf" {
   }
 
   source = "umotif-public/waf-webaclv2/aws"
-  version = "~> 3.0.0"
+  version = "~> 4.0.0"
 
   name_prefix = "test-waf-setup-cloudfront"
   scope = "CLOUDFRONT"
@@ -255,18 +408,19 @@ Importantly, make sure that Amazon Kinesis Data Firehose is using a name startin
 
 ## Examples
 
-* [WAF ACL](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/master/examples/core)
-* [WAF ACL with configuration logging](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/master/examples/wafv2-logging-configuration)
-* [WAF ACL with ip rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/master/examples/wafv2-ip-rules)
-* [WAF ACL with bytematch rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/master/examples/wafv2-bytematch-rules)
-* [WAF ACL with geo match rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/master/examples/wafv2-geo-rules)
-* [WAF ACL with and / or rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/master/examples/wafv2-and-or-rules)
+* [WAF ACL](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/core)
+* [WAF ACL with configuration logging](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/wafv2-logging-configuration)
+* [WAF ACL with ip rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/wafv2-ip-rules)
+* [WAF ACL with bytematch rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/wafv2-bytematch-rules)
+* [WAF ACL with geo match rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/wafv2-geo-rules)
+* [WAF ACL with and / or rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/wafv2-and-or-rules)
+* [WAF ACL with label match rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/wafv2-labelmatch-rules)
+* [WAF ACL with regex pattern rules](https://github.com/umotif-public/terraform-aws-waf-webaclv2/tree/main/examples/wafv2-regex-pattern-rules)
+
 
 ## Authors
 
 Module managed by:
-* [Marcin Cuber](https://github.com/marcincuber) [LinkedIn](https://www.linkedin.com/in/marcincuber/)
-* [Sean Pascual](https://github.com/seanpascual) [LinkedIn](https://www.linkedin.com/in/sean-edward-pascual)
 * [Abdul Wahid](https://github.com/Ohid25) [LinkedIn](https://www.linkedin.com/in/abdul-wahid/)
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
@@ -274,14 +428,14 @@ Module managed by:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.13.0 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 3.38 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.13.7 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.52.0, < 5.0.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 3.38 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.52.0, < 5.0.0 |
 
 ## Modules
 
@@ -305,6 +459,8 @@ No modules.
 | <a name="input_allow_default_action"></a> [allow\_default\_action](#input\_allow\_default\_action) | Set to `true` for WAF to allow requests by default. Set to `false` for WAF to block requests by default. | `bool` | `true` | no |
 | <a name="input_create_alb_association"></a> [create\_alb\_association](#input\_create\_alb\_association) | Whether to create alb association with WAF web acl | `bool` | `true` | no |
 | <a name="input_create_logging_configuration"></a> [create\_logging\_configuration](#input\_create\_logging\_configuration) | Whether to create logging configuration in order start logging from a WAFv2 Web ACL to Amazon Kinesis Data Firehose. | `bool` | `false` | no |
+| <a name="input_custom_response_bodies"></a> [custom\_response\_bodies](#input\_custom\_response\_bodies) | Custom response bodies to be referenced on a per rule basis. https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl#custom-response-body | <pre>list(object({<br>    key          = string<br>    content      = string<br>    content_type = string<br>  }))</pre> | `[]` | no |
+| <a name="input_description"></a> [description](#input\_description) | A friendly description of the WebACL | `string` | `null` | no |
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Whether to create the resources. Set to `false` to prevent the module from creating any resources | `bool` | `true` | no |
 | <a name="input_log_destination_configs"></a> [log\_destination\_configs](#input\_log\_destination\_configs) | The Amazon Kinesis Data Firehose Amazon Resource Name (ARNs) that you want to associate with the web ACL. Currently, only 1 ARN is supported. | `list(string)` | `[]` | no |
 | <a name="input_logging_filter"></a> [logging\_filter](#input\_logging\_filter) | A configuration block that specifies which web requests are kept in the logs and which are dropped. You can filter on the rule action and on the web request labels that were applied by matching rules during web ACL evaluation. | `any` | `{}` | no |
@@ -321,10 +477,14 @@ No modules.
 |------|-------------|
 | <a name="output_web_acl_arn"></a> [web\_acl\_arn](#output\_web\_acl\_arn) | The ARN of the WAFv2 WebACL. |
 | <a name="output_web_acl_assoc_acl_arn"></a> [web\_acl\_assoc\_acl\_arn](#output\_web\_acl\_assoc\_acl\_arn) | The ARN of the Web ACL attached to the Web ACL Association |
+| <a name="output_web_acl_assoc_alb_list_acl_arn"></a> [web\_acl\_assoc\_alb\_list\_acl\_arn](#output\_web\_acl\_assoc\_alb\_list\_acl\_arn) | The ARN of the Web ACL attached to the Web ACL Association for the alb\_list resource |
+| <a name="output_web_acl_assoc_alb_list_id"></a> [web\_acl\_assoc\_alb\_list\_id](#output\_web\_acl\_assoc\_alb\_list\_id) | The ID of the Web ACL Association for the alb\_list resource |
+| <a name="output_web_acl_assoc_alb_list_resource_arn"></a> [web\_acl\_assoc\_alb\_list\_resource\_arn](#output\_web\_acl\_assoc\_alb\_list\_resource\_arn) | The ARN of the ALB attached to the Web ACL Association for the alb\_list resource |
 | <a name="output_web_acl_assoc_id"></a> [web\_acl\_assoc\_id](#output\_web\_acl\_assoc\_id) | The ID of the Web ACL Association |
 | <a name="output_web_acl_assoc_resource_arn"></a> [web\_acl\_assoc\_resource\_arn](#output\_web\_acl\_assoc\_resource\_arn) | The ARN of the ALB attached to the Web ACL Association |
 | <a name="output_web_acl_capacity"></a> [web\_acl\_capacity](#output\_web\_acl\_capacity) | The web ACL capacity units (WCUs) currently being used by this web ACL. |
 | <a name="output_web_acl_id"></a> [web\_acl\_id](#output\_web\_acl\_id) | The ID of the WAFv2 WebACL. |
+| <a name="output_web_acl_logging_configuration_id"></a> [web\_acl\_logging\_configuration\_id](#output\_web\_acl\_logging\_configuration\_id) | The ID of the Web ACL logging configuration resource |
 | <a name="output_web_acl_name"></a> [web\_acl\_name](#output\_web\_acl\_name) | The name of the WAFv2 WebACL. |
 | <a name="output_web_acl_rule_names"></a> [web\_acl\_rule\_names](#output\_web\_acl\_rule\_names) | List of created rule names |
 | <a name="output_web_acl_visibility_config_name"></a> [web\_acl\_visibility\_config\_name](#output\_web\_acl\_visibility\_config\_name) | The web ACL visibility config name |

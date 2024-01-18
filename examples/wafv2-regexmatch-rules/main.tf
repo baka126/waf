@@ -9,7 +9,6 @@ terraform {
 provider "aws" {
   region = "eu-west-1"
 }
-
 #####
 # Web Application Firewall configuration
 #####
@@ -32,33 +31,17 @@ module "waf" {
 
   rules = [
     {
-      name     = "AWSManagedRulesCommonRuleSet-rule-1"
+      name     = "block-some-path"
       priority = "1"
+      action   = "block"
 
-      override_action = "none"
-
-      visibility_config = {
-        cloudwatch_metrics_enabled = false
-        metric_name                = "AWSManagedRulesCommonRuleSet-metric"
-        sampled_requests_enabled   = false
-      }
-
-      managed_rule_group_statement = {
-        name        = "AWSManagedRulesCommonRuleSet"
-        vendor_name = "AWS"
-      }
-    },
-    {
-      name     = "allow-nl-gb-us-traffic-only"
-      priority = "2"
-      action   = "allow"
-
-      geo_match_statement = {
-        country_codes = ["NL", "GB", "US"],
-        forwarded_ip_config = {
-          header_name       = "X-Forwarded-For"
-          fallback_behavior = "NO_MATCH"
+      regex_match_statement = {
+        field_to_match = {
+          uri_path = "{}"
         }
+        regex_string = "^/(path1|path2)/"
+        priority     = 0
+        type         = "NONE"
       }
 
       visibility_config = {

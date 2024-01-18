@@ -80,3 +80,19 @@ variable "logging_filter" {
   description = "A configuration block that specifies which web requests are kept in the logs and which are dropped. You can filter on the rule action and on the web request labels that were applied by matching rules during web ACL evaluation."
   default     = {}
 }
+
+variable "description" {
+  type        = string
+  description = "A friendly description of the WebACL"
+  default     = null
+}
+
+variable "custom_response_bodies" {
+  type = list(object({
+    key          = string
+    content      = string
+    content_type = string
+  }))
+  description = "Custom response bodies to be referenced on a per rule basis. https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl#custom-response-body"
+  default     = []
+}
